@@ -1,4 +1,4 @@
-# New regimes of junction arrays
+# To-do list
 
 1. Build an explicit wave function for the eigen-
 states on the charge lattice
