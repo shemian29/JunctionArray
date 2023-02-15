@@ -4,7 +4,7 @@ import qutip as qt
 from tqdm.notebook import tqdm
 import os
 from scipy.sparse import csr_matrix
-
+from matplotlib import pyplot as plt
 
 class JJCircuit(scq.Circuit):
 
@@ -235,3 +235,25 @@ class JJCircuit(scq.Circuit):
     def ind2occ(self, s, r, N, Ncut):
         return int((s // ((2 * Ncut + 1) ** (N - r - 1))) % (2 * Ncut + 1))
 
+    def hamiltonian_one_mode_model(self, ph_points = 200):
+
+        ph_list = np.linspace(-self.N * np.pi, self.N * np.pi, ph_points)
+        dphi = ph_list[1]-ph_list[0]
+        d2d2phi = (qt.tunneling(ph_points, 1) - 2 * qt.identity(ph_points)).full()
+        d2d2phi[0, ph_points - 1] = 1
+        d2d2phi[ph_points - 1, 0] = 1
+        d2d2phi = qt.Qobj(d2d2phi) / (dphi * dphi)
+
+
+
+        EC = self.ECs[0]/(1+self.ECs[0]/(np.mean(self.ECs[1:])*self.N))
+        h = qt.Qobj(-4 * EC * d2d2phi - (self.N) * np.mean(self.EJs[1:]) * np.diag(np.cos(ph_list / (self.N))) - self.EJs[0] * np.diag(
+                np.cos(ph_list + 2 * np.pi * self.Φ1)))
+
+        return h
+
+
+    def paramSweep(self, param):
+        ng_list = np.linspace(-2, 2, 220)
+        self.plot_evals_vs_paramvals(param, ng_list, evals_count=7, num_cpus=1, subtract_ground=True)
+        plt.title(fr'$N= {self.N} \quad E_j^b = {self.ECs[0]} \quad E_j^a = {self.EJs[1:]} \quad  E_C^b = {self.ECs[0]} \quad E_C^a = {self.ECs[1:]}$')
