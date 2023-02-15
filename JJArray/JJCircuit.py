@@ -48,30 +48,35 @@ class JJCircuit(scq.Circuit):
         for nc in self.cutoff_names:
             self.__dict__["_" + nc] = Ncut
 
-        nvals = 5
-        ntries = 20
-
-        sample = np.concatenate((self.cartesian(tuple([[0, 0.25, 0.5, 0.75] for r in range(self.N + 1)])),
+        nvals = np.min([5, (2*Ncut+1)**self.N])
+        ntries = 10
+        grid = np.linspace(0,1,5)
+        grid = grid[0:len(grid)-1]
+        sample = np.concatenate((self.cartesian(tuple([grid for r in range(self.N + 1)])),
                                  np.random.rand(ntries, self.N + 1)))
+
+        # sample = np.concatenate((self.cartesian(tuple([[0, 0.25, 0.5, 0.75] for r in range(self.N + 1)])),
+        #                          np.random.rand(ntries, self.N + 1)))
         print()
         print("Initiating calculation of converged Ncut. Number of samples:", len(sample))
 
         for smp in tqdm(range(len(sample))):
 
             prms = sample[smp]
+            print(smp, prms)
             self.__dict__['_Φ1'] = prms[0]
             for r in range(1, self.N + 1):
                 self.__dict__['_ng' + str(r)] = prms[r]
 
             eps = 1
             eigs_new = qt.Qobj(self.hamiltonian()).eigenenergies(sparse=True, sort='low', eigvals=nvals)
-            while eps > 10 ** (-5):
+            while eps > 10 ** (-10):
                 for nc in self.cutoff_names:
                     self.__dict__["_" + nc] = Ncut + 1
                 eigs_old = eigs_new
                 eigs_new = qt.Qobj(self.hamiltonian()).eigenenergies(sparse=True, sort='low', eigvals=nvals)
                 eps = np.mean(np.abs(eigs_old - eigs_new))
-                if eps > 10 ** (-5):
+                if eps > 10 ** (-10):
                     Ncut = Ncut + 1
                     print("Changed at sample:", (Ncut, sample[smp]))
 
@@ -90,7 +95,7 @@ class JJCircuit(scq.Circuit):
         m = int(n / arrays[0].size)
         out[:, 0] = np.repeat(arrays[0], m)
         if arrays[1:]:
-            cartesian(arrays[1:], out=out[0:m, 1:])
+            self.cartesian(arrays[1:], out=out[0:m, 1:])
             for j in range(1, arrays[0].size):
                 out[j * m:(j + 1) * m, 1:] = out[0:m, 1:]
         return out
