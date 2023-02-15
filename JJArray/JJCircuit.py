@@ -214,23 +214,6 @@ class JJCircuit(scq.Circuit):
 
         return eigs, vecs, tst
 
-    def SectorDiagonalization_Energies(self, Nvals):
-
-        data = []
-        for k in range(len(V)):
-            HF0 = V[k].dag() * H * V[k]
-            evals = HF0.eigenenergies(eigvals=Nvals, sparse=True)
-            data.append(evals)
-
-        return data
-
-    def SortedDiagonalization_Energies(self, H, V, Nvals):
-        tst = self.SectorDiagonalization_Energies(H, V, Nvals)
-
-        eigs = np.sort(np.concatenate(tst))
-
-        return eigs, tst
-
     def TransInd(self, s, N, Ncut):
         return int(
             self.ind2occ(s, N - 1, N, Ncut) * ((2 * Ncut + 1) ** (N - 1)) - (
