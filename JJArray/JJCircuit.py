@@ -8,7 +8,15 @@ from matplotlib import pyplot as plt
 
 
 class JJCircuit(scq.Circuit):
-    def __init__(self, EJs, ECs, converge=False, Ncut=5):
+    def __init__(self, EJs: object, ECs: object, converge: object = False, Ncut: object = 5) -> object:
+        """
+
+        :rtype: object
+        :param EJs: List of Josephson energies
+        :param ECs: List of charging energies
+        :param converge: Option to converge Ncut
+        :param Ncut: Cutoff value, the same for all junctions
+        """
         self.EJs = EJs
         self.ECs = ECs
         self.Ncut = None
