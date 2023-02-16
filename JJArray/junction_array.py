@@ -7,21 +7,37 @@ from scipy.sparse import csr_matrix
 from matplotlib import pyplot as plt
 
 
-class JJCircuit(scq.Circuit):
-    def __init__(self, EJs: object, ECs: object, converge: object = False, Ncut: object = 5) -> object:
+class junction_array(scq.Circuit):
+    def __init__(
+        self, EJs: list, ECs: list, converge: bool = False, Ncut: int = 5
+    ) -> None:
         """
 
-        :rtype: object
-        :param EJs: List of Josephson energies
-        :param ECs: List of charging energies
-        :param converge: Option to converge Ncut
-        :param Ncut: Cutoff value, the same for all junctions
+
+        Parameters
+        ----------
+        EJs :
+            list of Josephson energies
+        ECs :
+            list of charging energies
+        converge :
+            boolean option to converge Ncut for a sample of the flux and ngs parameter space
+        Ncut :
+            cutoff value, the same for all junctions
+
         """
+
         self.EJs = EJs
         self.ECs = ECs
-        self.Ncut = None
         self.N = len(EJs) - 1
+
+        self.Ncut = None
         self.symmetric_basis_transformation = None
+
+        self.circuit_setup(Ncut, converge)
+
+    def circuit_setup(self, Ncut: int, converge: bool) -> None:
+
         JJcirc_yaml = "branches:\n"
 
         N_junctions = self.N + 1
@@ -36,12 +52,12 @@ class JJCircuit(scq.Circuit):
                 + str(n % N_junctions)
                 + str((n + 1) % N_junctions)
                 + " = "
-                + str(EJs[n % N_junctions])
+                + str(self.EJs[n % N_junctions])
                 + ", EC"
                 + str(n % N_junctions)
                 + str((n + 1) % N_junctions)
                 + " = "
-                + str(ECs[n % N_junctions])
+                + str(self.ECs[n % N_junctions])
                 + "]\n"
             )
 
@@ -55,16 +71,22 @@ class JJCircuit(scq.Circuit):
         )
 
         if converge:
-            self.Ncut = self.ConvergeCutoff()
+            self.Ncut = self.converge_cutoff()
         else:
             self.Ncut = Ncut
-            self.SetCutoff(Ncut)
+            self.set_cutoff(Ncut)
 
-    def SetCutoff(self, Ncut):
+    def set_cutoff(self, Ncut: int) -> None:
+        """
+        Parameters
+        ----------
+        Ncut :
+            cutoff value, the same for all junctions
+        """
         for nc in self.cutoff_names:
             self.__dict__["_" + nc] = Ncut
 
-    def ConvergeCutoff(self):
+    def converge_cutoff(self):
 
         Ncut = 1
         for nc in self.cutoff_names:
