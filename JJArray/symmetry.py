@@ -8,6 +8,7 @@ from scipy.sparse import csr_matrix
 from tqdm.notebook import tqdm
 import JJArray as jja
 
+import scipy.sparse
 
 def GenerateMomentumBasis(N, Ncut):
     dms = (2 * Ncut + 1) ** N
@@ -38,6 +39,9 @@ def amps(cycle, k):
 
 
 def ChargeToTranslation(N, Ncut):
+
+
+    # Check if vbs file has been generated, if not then generate it
     flnms = os.listdir()
     flag = 0
     for fname in flnms:
@@ -51,6 +55,8 @@ def ChargeToTranslation(N, Ncut):
         vbs = loaded['vbs'].tolist()
 
     DIMS = [[2 * Ncut + 1 for r in range(N)], [2 * Ncut + 1 for r in range(N)]]
+
+
 
     mms = np.array([n / N for n in range(N)])
     lns = np.unique(list(map(len, vbs)))
@@ -88,7 +94,6 @@ def ChargeToTranslation(N, Ncut):
     if sm != (2 * Ncut + 1) ** N:
         np.savetxt('WARNING_' + str([N, Ncut]) + '.txt', [1])
     return V
-
 
 def SectorDiagonalization(H, V, Nvals):
     data = []
@@ -136,3 +141,91 @@ def SortedDiagonalization_Energies(H, V, Nvals):
     eigs = np.sort(np.concatenate(tst))
 
     return eigs, tst
+
+
+
+
+
+# ------------------------------------------------------------------
+
+def Hk(hamiltonian, basis, basis_ind,size, check_symm = False, check_spect = False):
+
+
+    # print("Setup momentum basis")
+
+    k_list = np.arange(0, size) / size
+    scan = {}
+    for kk in k_list:
+        scan[kk] = []
+    vbs = GenerateMomentumBasis(size, basis)
+    # for n in tqdm(range(len(vbs))):
+    for n in range(len(vbs)):
+
+        ktemp_list = np.arange(0, len(vbs[n])) / len(vbs[n])
+        inds = list(map(basis_ind.get, vbs[n]))
+
+        for kk in ktemp_list:
+            phs = np.exp(-2 * np.pi * kk * 1j * np.arange(0, len(inds))) / np.sqrt(len(inds))
+            scan[kk].append([inds, phs])
+
+
+    # print("Calculating k-basis transformations")
+    U = {}
+    # for kk in tqdm(k_list):
+    for kk in k_list:
+        # print('---------------------------')
+        U[kk] = 0
+        for n in range(len(scan[kk])):
+            row = n * np.ones(len(scan[kk][n][0]))
+            col = np.array(scan[kk][n][0])
+            data = np.array(scan[kk][n][1])
+
+            U[kk] = U[kk] + scipy.sparse.csr_matrix((data, (row, col)), shape=(len(scan[kk]), \
+                                                                               len(basis))).T
+
+    # print("Calculate momentum Hamiltonians")
+    Hs = {}
+    scan = []
+    # for k in tqdm(k_list):
+    for k in k_list:
+        U[k] = qt.Qobj(U[k])
+        Hs[k]=(U[k].dag()*hamiltonian*U[k])
+        scan.append(Hs[k].eigenstates()[0])
+    scan = [x for xs in scan for x in xs]
+
+
+    if (check_symm == True):
+        if hamiltonian.shape[0]<4000:
+            print("Run symmetry check:")
+            Trn = 0
+            for n in range(len(vbs)):
+                inds = list(map(basis_ind.get, vbs[n]))
+                row = inds
+                col = np.roll(inds, 1)
+                data = np.ones(len(np.roll(inds, 1)))
+
+                Trn = Trn + scipy.sparse.csr_matrix((data, (row, col)), shape=(len(basis), \
+                                                                               len(basis))).T
+            Trn = qt.Qobj(Trn)
+            commutator =  np.sum(np.abs((Trn*hamiltonian-hamiltonian*Trn).full()))
+            if commutator == 0.0:
+                print(" -> Passed: Hamiltonian is translationally invariant")
+            else:
+                print("WARNING: Hamiltonian is NOT translationally invariant, failure amount: ",commutator)
+        else:
+            print("Hilbert space is too big to perform symmetry check")
+
+    if check_spect == True:
+        if hamiltonian.shape[0]<4000:
+            print("Run spectrum check:")
+            de = hamiltonian.eigenenergies() - np.sort(scan)
+            dE = np.sum(np.abs(de))
+            if dE < 10**(-10):
+                print(" -> Passed: Spectra of full H and the H(k) match")
+            else:
+                print("WARNING: Spectra of full H and the H(k) do NOT match, failure amount: ",dE)
+        else:
+            print("Hilbert space is too big to perform spectrum check")
+
+
+    return Hs, U
