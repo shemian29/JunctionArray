@@ -5,7 +5,7 @@ from tqdm.notebook import tqdm
 import os
 from scipy.sparse import csr_matrix
 from matplotlib import pyplot as plt
-
+scq.settings.T1_DEFAULT_WARNING=False
 
 class junction_array(scq.Circuit):
     def __init__(self, ejs: list, ecs: list, converge: bool = False, ncut: int = 5,
@@ -116,34 +116,60 @@ class junction_array(scq.Circuit):
 
         # sample = np.concatenate((self.cartesian(tuple([[0, 0.25, 0.5, 0.75] for r in range(self.N + 1)])),
         #                          np.random.rand(ntries, self.N + 1)))
-        print()
-        print(
-            "Initiating calculation of converged Ncut. Number of samples:", len(sample)
-        )
 
-        for smp in tqdm(range(len(sample))):
-
-            prms = sample[smp]
-            print(smp, prms)
-            self.__dict__["_Φ1"] = prms[0]
-            for r in range(1, self.N + 1):
-                self.__dict__["_ng" + str(r)] = prms[r]
-
-            eps = 1
-            eigs_new = qt.Qobj(self.hamiltonian()).eigenenergies(
-                sparse=True, sort="low", eigvals=nvals
+        if monitor:
+            print()
+            print(
+                "Initiating calculation of converged ncut. Number of samples:", len(sample)
             )
-            while eps > 10 ** (-10):
-                for nc in self.cutoff_names:
-                    self.__dict__["_" + nc] = Ncut + 1
-                eigs_old = eigs_new
+            for smp in tqdm(range(len(sample))):
+
+                prms = sample[smp]
+                print(smp, prms)
+                self.__dict__["_Φ1"] = prms[0]
+                for r in range(1, self.N + 1):
+                    self.__dict__["_ng" + str(r)] = prms[r]
+
+                eps = 1
                 eigs_new = qt.Qobj(self.hamiltonian()).eigenenergies(
                     sparse=True, sort="low", eigvals=nvals
                 )
-                eps = np.mean(np.abs(eigs_old - eigs_new))
-                if eps > 10 ** (-10):
-                    Ncut = Ncut + 1
-                    print("Changed at sample:", (Ncut, sample[smp]))
+                while eps > 10 ** (-10):
+                    for nc in self.cutoff_names:
+                        self.__dict__["_" + nc] = ncut + 1
+                    eigs_old = eigs_new
+                    eigs_new = qt.Qobj(self.hamiltonian()).eigenenergies(
+                        sparse=True, sort="low", eigvals=nvals
+                    )
+                    eps = np.mean(np.abs(eigs_old - eigs_new))
+                    if eps > 10 ** (-10):
+                        ncut = ncut + 1
+                        print("Changed at sample:", (ncut, sample[smp]))
+            print("Final ncut value:", ncut)
+        elif not monitor:
+            for smp in range(len(sample)):
+
+                prms = sample[smp]
+                # print(smp, prms)
+                self.__dict__["_Φ1"] = prms[0]
+                for r in range(1, self.N + 1):
+                    self.__dict__["_ng" + str(r)] = prms[r]
+
+                eps = 1
+                eigs_new = qt.Qobj(self.hamiltonian()).eigenenergies(
+                    sparse=True, sort="low", eigvals=nvals
+                )
+                while eps > 10 ** (-10):
+                    for nc in self.cutoff_names:
+                        self.__dict__["_" + nc] = ncut + 1
+                    eigs_old = eigs_new
+                    eigs_new = qt.Qobj(self.hamiltonian()).eigenenergies(
+                        sparse=True, sort="low", eigvals=nvals
+                    )
+                    eps = np.mean(np.abs(eigs_old - eigs_new))
+                    if eps > 10 ** (-10):
+                        ncut = ncut + 1
+                        # print("Changed at sample:", (ncut, sample[smp]))
 
         return ncut
 
@@ -333,3 +359,33 @@ class junction_array(scq.Circuit):
         plt.title(
             rf"$N= {self.N} \quad E_j^b = {self.ECs[0]} \quad E_j^a = {self.EJs[1:]} \quad  E_C^b = {self.ECs[0]} \quad E_C^a = {self.ECs[1:]}$"
         )
+
+    def get_effective_coherence(self, param: object, state0: object, state1: object, converge: object = True) -> object:
+
+        self.generate_all_noise_methods()
+        fract_sweep = np.linspace(0.5, 1.5, 20)
+        if param[0] == "EJ":
+            t1_eff = []
+            t2_eff = []
+            ej_temp = self.EJs[param[1]]
+            prm_sweep = fract_sweep * ej_temp
+            for prm in tqdm(prm_sweep):
+                self.EJs[param[1]] = prm
+                self.circuit_setup(self.ncut, converge=converge, monitor=False)
+
+                t1_eff.append(self.t1_effective(i=int(state1), j=int(state0), total=False))
+                t2_eff.append(self.t2_effective())
+
+            self.EJs[param[1]] = ej_temp
+
+        return prm_sweep, t1_eff, t2_eff
+
+
+def _ind2occ(s, r, number_junctions, ncut):
+    return int((s // ((2 * ncut + 1) ** (number_junctions - r - 1))) % (2 * ncut + 1))
+
+
+def _amps(cycle, k):
+    n0 = len(cycle)
+    seq = np.arange(n0)
+    return (1 / np.sqrt(n0)) * np.exp(-1j * 2 * np.pi * k * seq)
