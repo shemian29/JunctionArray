@@ -35,7 +35,8 @@ class junction_array(scq.Circuit):
 
         self.circuit_setup(ncut, converge, monitor)
 
-    def circuit_setup(self, Ncut: int, converge: bool) -> None:
+    def circuit_setup(self, ncut: int, converge: bool, monitor: object = True) -> None:
+        """
 
         :rtype: object
         :param ncut: 
