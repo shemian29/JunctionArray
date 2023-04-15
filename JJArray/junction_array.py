@@ -38,10 +38,11 @@ class junction_array(scq.Circuit):
     def circuit_setup(self, ncut: int, converge: bool, monitor: object = True) -> None:
         """
 
-        :rtype: object
-        :param ncut: 
-        :param converge: 
-        :param monitor: 
+
+        :param ncut: manually set cut-off in the charge basis for each degree of freedom
+        :param converge: determine whether to automatically search for optimal cut-off
+        :param monitor: track convergence of cut-off
+        :rtype: Circuit class object
         """
         jj_circ_yaml = "branches:\n"
 
@@ -66,13 +67,13 @@ class junction_array(scq.Circuit):
                     + "]\n"
             )
 
-        super().__init__(JJcirc_yaml, from_file=False)
+        super().__init__(jj_circ_yaml, from_file=False)
 
         closure_branches = [self.branches[0]]
-        trans_mat = np.triu(np.ones((self.N, self.N)), 0) * (-1)
+        transformation_matrix = np.triu(np.ones((self.N, self.N)), 0) * (-1)
 
         self.configure(
-            transformation_matrix=trans_mat, closure_branches=closure_branches
+            transformation_matrix=        transformation_matrix, closure_branches=closure_branches
         )
 
         if converge:
@@ -93,9 +94,8 @@ class junction_array(scq.Circuit):
 
     def converge_cutoff(self, monitor: object = True) -> object:
         """
-
-        :rtype: object
-        :return: 
+        Parameters
+        ----------
         :param monitor: 
         :return: 
         """
@@ -113,9 +113,6 @@ class junction_array(scq.Circuit):
                 np.random.rand(ntries, self.N + 1),
             )
         )
-
-        # sample = np.concatenate((self.cartesian(tuple([[0, 0.25, 0.5, 0.75] for r in range(self.N + 1)])),
-        #                          np.random.rand(ntries, self.N + 1)))
 
         if monitor:
             print()
