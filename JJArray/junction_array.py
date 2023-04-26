@@ -26,9 +26,9 @@ class junction_array(scq.Circuit):
 
         """
 
-        self.EJs = EJs
-        self.ECs = ECs
-        self.N = len(EJs) - 1
+        self.ejs = ejs
+        self.ecs = ecs
+        self.N = len(ejs) - 1
 
         self.ncut = None
         self.symmetric_basis_transformation = None
@@ -57,16 +57,17 @@ class junction_array(scq.Circuit):
                     + str(n % n_junctions)
                     + str((n + 1) % n_junctions)
                     + " = "
-                    + str(self.EJs[n % n_junctions])
+                    + str(self.ejs[n % n_junctions])
                     + ", EC"
                     + str(n % n_junctions)
                     + str((n + 1) % n_junctions)
                     + " = "
-                    + str(self.ECs[n % n_junctions])
+                    + str(self.ecs[n % n_junctions])
                     + "]\n"
             )
+        self.jj_circ_yaml = jj_circ_yaml
 
-        super().__init__(JJcirc_yaml, from_file=False)
+        super().__init__(jj_circ_yaml, from_file=False,is_flux_dynamic=True)
 
         closure_branches = [self.branches[0]]
         trans_mat = np.triu(np.ones((self.N, self.N)), 0) * (-1)
@@ -342,17 +343,17 @@ class junction_array(scq.Circuit):
         d2d2phi[ph_points - 1, 0] = 1
         d2d2phi = qt.Qobj(d2d2phi) / (dphi * dphi)
 
-        ec = self.ECs[0] / (1 + self.ECs[0] / (np.mean(self.ECs[1:]) * self.N))
+        ec = self.ecs[0] / (1 + self.ecs[0] / (np.mean(self.ecs[1:]) * self.N))
         h = qt.Qobj(
             -4 * ec * d2d2phi
-            - self.N * np.mean(self.EJs[1:]) * np.diag(np.cos(ph_list / self.N))
-            - self.EJs[0] * np.diag(np.cos(ph_list + 2 * np.pi * self.Φ1))
+            - self.N * np.mean(self.ejs[1:]) * np.diag(np.cos(ph_list / self.N))
+            - self.ejs[0] * np.diag(np.cos(ph_list + 2 * np.pi * self.Φ1))
         )
 
         return h
 
-    def param_sweep(self, param):
-        ng_list = np.linspace(-2, 2, 220)
+    def param_sweep(self, param_name, param_vals, evals_count=7, num_cpus=1, subtract_ground=True):
+
         self.plot_evals_vs_paramvals(
             param, ng_list, evals_count=7, num_cpus=1, subtract_ground=True
         )
@@ -367,16 +368,16 @@ class junction_array(scq.Circuit):
         if param[0] == "EJ":
             t1_eff = []
             t2_eff = []
-            ej_temp = self.EJs[param[1]]
+            ej_temp = self.ejs[param[1]]
             prm_sweep = fract_sweep * ej_temp
             for prm in tqdm(prm_sweep):
-                self.EJs[param[1]] = prm
+                self.ejs[param[1]] = prm
                 self.circuit_setup(self.ncut, converge=converge, monitor=False)
 
                 t1_eff.append(self.t1_effective(i=int(state1), j=int(state0), total=False))
                 t2_eff.append(self.t2_effective())
 
-            self.EJs[param[1]] = ej_temp
+            self.ejs[param[1]] = ej_temp
 
         return prm_sweep, t1_eff, t2_eff
 
