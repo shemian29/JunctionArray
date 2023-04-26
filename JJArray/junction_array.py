@@ -357,7 +357,7 @@ class junction_array(scq.Circuit):
     def param_sweep(self, param_name, param_vals, evals_count=7, num_cpus=1, subtract_ground=True):
 
         self.plot_evals_vs_paramvals(
-            param, ng_list, evals_count=7, num_cpus=1, subtract_ground=True
+            param_name = param_name, param_vals =  param_vals, evals_count=evals_count, num_cpus=num_cpus, subtract_ground=subtract_ground
         )
         plt.title(
             rf"$N= {self.N} \quad E_j^b = {self.ECs[0]} \quad E_j^a = {self.EJs[1:]} \quad  E_C^b = {self.ECs[0]} \quad E_C^a = {self.ECs[1:]}$"
