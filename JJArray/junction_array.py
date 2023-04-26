@@ -105,7 +105,7 @@ class junction_array(scq.Circuit):
             self.__dict__["_" + nc] = ncut
 
         nvals = np.min([5, (2 * ncut + 1) ** self.N])
-        ntries = 2
+        ntries = 10
         grid = np.linspace(0, 1, 5)
         grid = grid[0: len(grid) - 1]
         sample = np.concatenate(
