@@ -360,7 +360,7 @@ class junction_array(scq.Circuit):
             param_name = param_name, param_vals =  param_vals, evals_count=evals_count, num_cpus=num_cpus, subtract_ground=subtract_ground
         )
         plt.title(
-            rf"$N= {self.N} \quad E_j^b = {self.ECs[0]} \quad E_j^a = {self.EJs[1:]} \quad  E_C^b = {self.ECs[0]} \quad E_C^a = {self.ECs[1:]}$"
+            rf"$N= {self.N} \quad E_j^b = {self.ecs[0]} \quad E_j^a = {self.ejs[1:]} \quad  E_C^b = {self.ecs[0]} \quad E_C^a = {self.ecs[1:]}$"
         )
 
     def get_effective_coherence(self, param: object, state0: object, state1: object, converge: object = True) -> object:
