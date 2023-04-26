@@ -171,7 +171,9 @@ class junction_array(scq.Circuit):
                     if eps > 10 ** (-10):
                         ncut = ncut + 1
                         # print("Changed at sample:", (ncut, sample[smp]))
-
+        self.__dict__["_Φ1"] = 0
+        for r in range(1, self.N + 1):
+            self.__dict__["_ng" + str(r)] = 0
         return ncut
 
     def cartesian(self, arrays, out=None):
